@@ -1,15 +1,14 @@
 package uk.ac.cam.ss2249.remix;
 
-import org.tritonus.share.sampled.file.TAudioFileFormat;
-
 import javax.sound.sampled.*;
 import java.io.*;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 /**
- * Created by sam on 11/01/15.
+ * Represents a track, made up of multiple beats.
+ *
+ * @author Sam Snyder
  */
 public class Track {
 
@@ -26,28 +25,53 @@ public class Track {
     private double computedThreshold;
     private double currentThreshold;
 
+    /**
+     * Creates a track object with a file path
+     *
+     * @param f file path
+     */
     public Track(String f){
         fileName = f;
         audioFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 44100.0f, 16, 2, 4, 44100.0f, false);
         analyseMethod = new VampAnalyseMethod(this);
     }
 
-    protected String getFileName() {
+    /**
+     * Gets the tracks original encoded file path
+     *
+     * @return file path
+     */
+    public String getFileName() {
         return fileName;
     }
 
+    /**
+     * Gets a list of beats that make up the track.
+     *
+     * @return list of beats
+     */
     public List<Beat> getBeats() {
         return beats;
     }
 
-    public RandomAccessFile getAudioFileInput() {
+    protected RandomAccessFile getAudioFileInput() {
         return audioFileInput;
     }
 
-    public AudioFormat getAudioFormat() {
+    protected AudioFormat getAudioFormat() {
         return audioFormat;
     }
 
+    /**
+     * Loads the track with a progress reporter
+     *
+     * It first converts and draws the beats, pitches and timbre from the encoded file
+     * It saves the decoded PCM data to a temporary file
+     *
+     * @param progress reporter
+     * @throws IOException in reading the encoded file and writing the decoded file
+     * @throws UnsupportedAudioFileException in decoding and analysing the audio
+     */
     public void load(ProgressFeedback progress) throws IOException, UnsupportedAudioFileException {
         progress.changedState(TrackLoadState.COVERTING_TRACK);
         convertTrack(progress);
@@ -56,14 +80,11 @@ public class Track {
         progress.finished(true);
     }
 
-    public void convertTrack(ProgressFeedback progress) throws IOException, UnsupportedAudioFileException {
+    private void convertTrack(ProgressFeedback progress) throws IOException, UnsupportedAudioFileException {
         analyseMethod.setupAnalyse();
 
         File file = new File(fileName);
-
-        //long numFrames = AudioSystem.getAudioFileFormat(file).properties().keySet();
         long duration = ((Long) AudioSystem.getAudioFileFormat(file).properties().get("duration")).longValue();
-
         AudioInputStream in = AudioSystem.getAudioInputStream(file);
         AudioInputStream din = AudioSystem.getAudioInputStream(audioFormat, in);
 
@@ -85,33 +106,19 @@ public class Track {
         audioFileInput = new RandomAccessFile(pcmFile, "r");
     }
 
-    public void analyseTrack(){
+    private void analyseTrack(){
 
-        //minLinkSize = beats.size() / 1;
-
-        for(int i=0; i<beats.size(); i++){
-            Beat beat = beats.get(i);
+        for(Beat beat : beats){
             beat.calculateAllBeatScores();
-//          beat.findAllLinks();
         }
-        for(int i=0; i<beats.size(); i++){
-            Beat beat = beats.get(i);
+        for(Beat beat : beats){
             beat.findAllLinks(maxLinks, maxLinkScore, minLinkSize);
         }
 
-        computedThreshold = bestThresholdForLinks(beats.size() / 6);
-        System.out.println("Threshold is " + computedThreshold);
-
-//        for(Beat b : beats)
-//            System.out.println(b);
-//
-//        System.out.println(Beat.totTimbre / Beat.num);
-//        System.out.println(Beat.totPitch / Beat.num);
-//        System.out.println(Beat.totMean / Beat.num);
-//        System.out.println(Beat.totDur / Beat.num);
+        currentThreshold = computedThreshold = bestThresholdForLinks(beats.size() / 6);
     }
 
-    double bestThresholdForLinks(int targetLinks){
+    private double bestThresholdForLinks(int targetLinks){
         double threshold;
         for(threshold = 40; threshold < maxLinkScore; threshold += 5){
             int linkCount = countAllLinksWithThreshold(threshold);
@@ -121,14 +128,19 @@ public class Track {
         return threshold;
     }
 
-    int countAllLinksWithThreshold(double threshold){
+    private int countAllLinksWithThreshold(double threshold){
         int sum = 0;
         for(int i=0; i<beats.size(); i++){
             Beat beat = beats.get(i);
-            beat.extractNeighboursWithThreshold(threshold, maxLinks);
+            beat.extractLinksWithThreshold(threshold);
             sum += beat.getCurrentLinks().size();
         }
         return sum;
+    }
+
+    public int changeThreshold(double threshold){
+        currentThreshold = threshold;
+        return countAllLinksWithThreshold(currentThreshold);
     }
 
 }

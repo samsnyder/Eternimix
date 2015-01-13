@@ -1,20 +1,24 @@
 package uk.ac.cam.ss2249.remix;
 
 /**
- * Created by sam on 11/01/15.
+ * Represents a set of float values.
+ * Used to represent pitch and timbre frequency spectrums
+ *
+ * @author Sam Snyder
  */
-public class ValueSetSegment {
+class ValueSetSegment {
     private float[] values;
-    private double start;
-    private double duration;
 
-    ValueSetSegment(double s, double d, float[] v){
+    /**
+     * Creates a value set
+     *
+     * @param v value array
+     */
+    protected ValueSetSegment(float[] v){
         values = v;
-        start = s;
-        duration = d;
     }
 
-    double getDistanceFrom(ValueSetSegment seg){
+    protected double getDistanceFrom(ValueSetSegment seg){
         return euclideanDistance(values, seg.values);
     }
 
@@ -25,10 +29,5 @@ public class ValueSetSegment {
             sum += delta * delta;
         }
         return Math.sqrt(sum);
-    }
-
-    @Override
-    public String toString(){
-        return start + " " + duration;
     }
 }

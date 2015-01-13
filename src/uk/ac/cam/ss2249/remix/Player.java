@@ -8,9 +8,11 @@ import java.util.LinkedList;
 import java.util.Queue;
 
 /**
- * Created by sam on 11/01/15.
+ * A player that plays through a queue of beats
+ *
+ * @author Sam Snyder
  */
-public class Player {
+class Player {
 
     private PlayerDelegate delegate;
 
@@ -22,12 +24,17 @@ public class Player {
 
     private Beat lastAddedBeat;
 
-    public Player(PlayerDelegate d){
+    /**
+     * Creates a player with a delegate
+     *
+     * @param d delegate
+     */
+    protected Player(PlayerDelegate d){
         delegate = d;
         audioQueue = new LinkedList<Beat>();
     }
 
-    public boolean shouldAddToQueue(){
+    protected boolean shouldAddToQueue(){
         return audioQueue.size() < minQueueItems;
     }
 
@@ -37,17 +44,18 @@ public class Player {
         }
     }
 
-    public void addToQueue(Beat beat){
+    protected void addToQueue(Beat beat){
+        if(beat == null)
+            return;
         lastAddedBeat = beat;
         audioQueue.add(beat);
         beat.asyncDecode(timeToIndex(beat.getStart()), timeToIndex(beat.getDuration()));
     }
 
-    public void startPlaying(){
+    protected void startPlaying(){
         if(audioQueue.isEmpty()){
             refreshQueue();
         }
-
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -56,7 +64,6 @@ public class Player {
                     SourceDataLine soundLine = (SourceDataLine) AudioSystem.getLine(info);
                     soundLine.open(delegate.getAudioFormat(), bufferSize);
                     soundLine.start();
-
                     while (!audioQueue.isEmpty()) {
                         Beat beat = audioQueue.remove();
 
@@ -65,7 +72,7 @@ public class Player {
                             System.out.println("NO AUDIO");
                             continue;
                         }
-                        //long startIndex = timeToIndex(beat.getDouble("start"));
+
                         long duration = timeToIndex(beat.getDuration());
                         soundLine.write(beat.getDecodedAudio(), 0, (int) duration);
                         beat.deallocDecodedAudio();
@@ -73,17 +80,15 @@ public class Player {
                         if(shouldAddToQueue()){
                             refreshQueue();
                         }
-
                     }
                 } catch (LineUnavailableException e) {
                     e.printStackTrace();
                 }
             }
         }).start();
-
     }
 
-    long timeToIndex(double time){
+    private long timeToIndex(double time){
         long frames = Math.round(time * delegate.getAudioFormat().getFrameRate());
         return delegate.getAudioFormat().getFrameSize() * frames;
     }

@@ -2,34 +2,39 @@ package uk.ac.cam.ss2249.remix;
 
 import org.vamp_plugins.*;
 
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Created by sam on 11/01/15.
+ * An analysing method using the Vamp audio plugins
+ *
+ * http://www.vamp-plugins.org
+ *
+ * @author Sam Snyder
  */
 public class VampAnalyseMethod extends AnalyseMethod {
 
-    PluginLoader loader;
+    private PluginLoader loader;
 
     private String[] pluginKeys = new String[]{"qm-vamp-plugins:qm-barbeattracker", "qm-vamp-plugins:qm-constantq", "qm-vamp-plugins:qm-mfcc"};
     private String[] outputKeys = new String[]{"beats", "constantq", "coefficients"};
 
-    int blockSize = 1024;
+    private int blockSize = 1024;
 
-    Plugin[] plugins;
-    int[] outputNumbers;
-    Object[] totalFeatures;
-    int block = 0;
-    float rate;
+    private Plugin[] plugins;
+    private int[] outputNumbers;
+    private Object[] totalFeatures;
+    private int block = 0;
+    private float rate;
 
-    VampAnalyseMethod(Track t){
+    /**
+     * Creates an analyse method from a track
+     *
+     * @param t track
+     */
+    protected VampAnalyseMethod(Track t){
         super(t);
     }
 
@@ -124,8 +129,7 @@ public class VampAnalyseMethod extends AnalyseMethod {
                 currentBeat = beats.get(currentBeat.getIndex() + 1);
             }
             if(lastTimestamp > 0){
-                double duration = timestamp - lastTimestamp;
-                ValueSetSegment segment = new ValueSetSegment(lastTimestamp, duration, feature.values);
+                ValueSetSegment segment = new ValueSetSegment(feature.values);
                 currentBeat.addOverlappingPitchSegment(segment);
             }
             lastTimestamp = timestamp;
@@ -142,8 +146,7 @@ public class VampAnalyseMethod extends AnalyseMethod {
                 currentBeat = beats.get(currentBeat.getIndex() + 1);
             }
             if(lastTimestamp > 0){
-                double duration = timestamp - lastTimestamp;
-                ValueSetSegment segment = new ValueSetSegment(lastTimestamp, duration, feature.values);
+                ValueSetSegment segment = new ValueSetSegment(feature.values);
                 currentBeat.addOverlappingTimbreSegment(segment);
             }
             lastTimestamp = timestamp;
@@ -159,186 +162,6 @@ public class VampAnalyseMethod extends AnalyseMethod {
     int getBufferSize() {
         return blockSize * getTrack().getAudioFormat().getChannels() * 2;
     }
-
-
-//    List<Beat> fillBeats() {
-//
-//        PluginLoader loader = PluginLoader.getInstance();
-//
-//
-//
-//
-//
-//        try {
-//            File f = new File(getTrack().getFileName());
-//
-//
-//
-//            //AudioInputStream streamFile = AudioSystem.getAudioInputStream(f);
-//            //AudioInputStream stream = AudioSystem.getAudioInputStream(format, streamFile);
-//            AudioInputStream stream = new AudioInputStream(new FileInputStream(f), getTrack().getAudioFormat(), f.length() / 4);
-//            //AudioFormat format = stream.getFormat();
-//
-//            assert getTrack().getAudioFormat().getSampleSizeInBits() == 16;
-//            assert getTrack().getAudioFormat().getEncoding() == AudioFormat.Encoding.PCM_SIGNED;
-//            assert !getTrack().getAudioFormat().isBigEndian();
-//
-//            float rate = getTrack().getAudioFormat().getFrameRate();
-//            int channels = getTrack().getAudioFormat().getChannels();
-//            int blockSize = 1024;
-//
-//            Plugin[] plugins = new Plugin[pluginKeys.length];
-//            int[] outputNumbers = new int[pluginKeys.length];
-//            for(int i=0; i<pluginKeys.length; i++){
-//                Object[] d = generatePlugin(loader, pluginKeys[i], outputKeys[i], rate, channels, blockSize);
-//                plugins[i] = (Plugin) d[0];
-//                outputNumbers[i] = ((Integer) d[1]).intValue();
-//            }
-//
-//            float[][] buffers = new float[channels][blockSize];
-//
-//            boolean done = false;
-//            int block = 0;
-//
-//            Object[] totalFeatures = new Object[plugins.length];
-//            for(int i=0; i<plugins.length; i++)
-//                totalFeatures[i] = new LinkedList<Feature>();
-//
-//            while (!done) {
-//                for (int c = 0; c < channels; ++c) {
-//                    for (int i = 0; i < blockSize; ++i) {
-//                        buffers[c][i] = 0.0f;
-//                    }
-//                }
-//                //int read = readBlock(getTrack().getAudioFormat(), stream, buffers);
-//                int read = 0;
-//                if (read < 0) {
-//                    done = true;
-//                } else {
-//                    RealTime timestamp = RealTime.frame2RealTime(block * blockSize, (int)(rate + 0.5));
-//                    if(timestamp.msec() < 10 && timestamp.sec() % 20 == 0)
-//                        System.out.println(timestamp.sec());
-//
-//                    for(int i=0; i<plugins.length; i++){
-//                        Map<Integer, List<Feature>> features = plugins[i].process(buffers, timestamp);
-//                        if(features.containsKey(outputNumbers[i])){
-//                            ((List<Feature>) totalFeatures[i]).addAll(features.get(outputNumbers[i]));
-//                        }
-//                    }
-//
-//                    timestamp.dispose();
-//                }
-//                ++block;
-//            }
-//
-//            for(int i=0; i<plugins.length; i++){
-//                Map<Integer, List<Feature>> features = plugins[i].getRemainingFeatures();
-//                if(features.containsKey(outputNumbers[i])){
-//                    ((List<Feature>) totalFeatures[i]).addAll(features.get(outputNumbers[i]));
-//                }
-//            }
-//
-//
-//            List<Beat> beats = new ArrayList<Beat>();
-//            double lastTimestamp = -1;
-//            int lastIndexInBar = -1;
-//            for(int i=0; i<((List<Feature>) totalFeatures[0]).size(); i++){
-//                Feature feature = ((List<Feature>) totalFeatures[0]).get(i);
-//                if(!feature.hasTimestamp)
-//                    continue;
-//                double timestamp = timestampToDouble(feature.timestamp);
-//                if(lastTimestamp > 0){
-//                    double duration = timestamp - lastTimestamp;
-//                    Beat beat = new Beat(getTrack(), i-1, lastTimestamp, duration, lastIndexInBar);
-//                    beats.add(beat);
-//                }
-//                lastTimestamp = timestamp;
-//                lastIndexInBar = Integer.parseInt(feature.label);
-//            }
-//
-//            Beat currentBeat = beats.get(0);
-//            lastTimestamp = -1;
-//            for(int i=0; i<((List<Feature>) totalFeatures[1]).size(); i++){
-//                Feature feature = ((List<Feature>) totalFeatures[1]).get(i);
-//                if(!feature.hasTimestamp)
-//                    continue;
-//                double timestamp = timestampToDouble(feature.timestamp);
-//                if(lastTimestamp > currentBeat.getEnd() && currentBeat.getIndex() < beats.size()-1){
-//                    currentBeat = beats.get(currentBeat.getIndex() + 1);
-//                }
-//                if(lastTimestamp > 0){
-//                    double duration = timestamp - lastTimestamp;
-//                    ValueSetSegment segment = new ValueSetSegment(lastTimestamp, duration, feature.values);
-//                    currentBeat.addOverlappingPitchSegment(segment);
-//                }
-//                lastTimestamp = timestamp;
-//            }
-//
-//
-//
-//
-//
-//
-//            currentBeat = beats.get(0);
-//            lastTimestamp = -1;
-//            for(int i=0; i<((List<Feature>) totalFeatures[2]).size(); i++){
-//                Feature feature = ((List<Feature>) totalFeatures[2]).get(i);
-//                if(!feature.hasTimestamp)
-//                    continue;
-//                double timestamp = timestampToDouble(feature.timestamp);
-//                if(lastTimestamp > currentBeat.getEnd() && currentBeat.getIndex() < beats.size()-1){
-//                    currentBeat = beats.get(currentBeat.getIndex() + 1);
-//                }
-//                if(lastTimestamp > 0){
-//                    double duration = timestamp - lastTimestamp;
-//                    ValueSetSegment segment = new ValueSetSegment(lastTimestamp, duration, feature.values);
-//                    currentBeat.addOverlappingTimbreSegment(segment);
-//                }
-//                lastTimestamp = timestamp;
-//            }
-//
-//
-//
-//
-////            currentBeat = beats.get(0);
-////            lastTimestamp = -1;
-////            float meanSum = 0;
-////            int meanNum = 0;
-////            for(int i=0; i<((List<Feature>) totalFeatures[2]).size(); i++){
-////                Feature feature = ((List<Feature>) totalFeatures[2]).get(i);
-////                if(!feature.hasTimestamp)
-////                    continue;
-////                double timestamp = timestampToDouble(feature.timestamp);
-////                if(lastTimestamp > currentBeat.getEnd() && currentBeat.getIndex() < beats.size()-1){
-////                    currentBeat.setMean(meanSum / ((float) meanNum));
-////                    currentBeat = beats.get(currentBeat.getIndex() + 1);
-////                    meanNum = 0;
-////                    meanSum = 0;
-////                }
-////                if(lastTimestamp > 0){
-////                    meanSum += feature.values[0];
-////                    meanNum++;
-////                }
-////                lastTimestamp = timestamp;
-////            }
-//
-//
-//
-//            for(int i=0; i<plugins.length; i++)
-//                plugins[i].dispose();
-//
-//            return beats;
-//
-//        } catch (java.io.IOException e) {
-//            e.printStackTrace();
-//        } catch (PluginLoader.LoadFailedException e) {
-//            e.printStackTrace();
-//        }
-//
-//
-//        return null;
-//    }
-
 
     private static double timestampToDouble(RealTime timestamp){
         return timestamp.sec() + (((double) timestamp.msec())/1000);

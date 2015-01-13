@@ -3,13 +3,16 @@ package uk.ac.cam.ss2249.remix;
 import java.util.List;
 
 /**
- * Created by sam on 11/01/15.
+ * Abstract class for an analysing method.
+ * Strategy design pattern
+ *
+ * @author Sam Snyder
  */
 abstract class AnalyseMethod {
 
     private Track track;
 
-    AnalyseMethod(Track t){
+    protected AnalyseMethod(Track t){
         track = t;
     }
 

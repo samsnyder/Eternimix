@@ -1,7 +1,9 @@
 package uk.ac.cam.ss2249.remix;
 
 /**
- * Created by sam on 13/01/15.
+ * Provides an interface for recieving progress on track analysis
+ *
+ * @author Sam Snyder
  */
 public interface ProgressFeedback {
     void changedState(TrackLoadState state);

@@ -4,7 +4,9 @@ import javax.sound.sampled.AudioFormat;
 import java.util.Random;
 
 /**
- * Created by sam on 11/01/15.
+ * Remixes a single song infinitely
+ *
+ * @author Sam Snyder
  */
 public class SingleTrackRemixer implements PlayerDelegate{
 
@@ -17,16 +19,29 @@ public class SingleTrackRemixer implements PlayerDelegate{
     private double maxRandomBranchChance = 0.5;
     private double randomBranchChanceDelta = 0.018;
 
+    /**
+     * Creates a remixer that feeds a UI
+     *
+     * @param ui ui to feed
+     */
     public SingleTrackRemixer(UI ui){
         this.ui = ui;
         player = new Player(this);
     }
 
+    /**
+     * Loads a track into the remixer
+     *
+     * @param t track
+     */
     public void loadTrack(Track t){
         currentTrack = t;
         ui.loadedTrack(t);
     }
 
+    /**
+     * Starts playing
+     */
     public void play(){
         player.startPlaying();
     }
@@ -58,7 +73,7 @@ public class SingleTrackRemixer implements PlayerDelegate{
         }
     }
 
-    Beat selectRandomNextBeat(Beat seed){
+    private Beat selectRandomNextBeat(Beat seed){
         if(seed.getCurrentLinks().size() == 0){
             return seed;
         }else if(shouldRandomBranch(seed)){
@@ -70,7 +85,7 @@ public class SingleTrackRemixer implements PlayerDelegate{
         }
     }
 
-    boolean shouldRandomBranch(Beat beat){
+    private boolean shouldRandomBranch(Beat beat){
         //if(beat != null) return false;
 //        if(beat.getIndex() == currentTrack.getLastBranchPoint()){
 //            return true;

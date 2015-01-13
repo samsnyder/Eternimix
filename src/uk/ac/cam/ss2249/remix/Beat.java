@@ -7,7 +7,9 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Created by sam on 11/01/15.
+ * Represents a beat of a song.
+ *
+ * @author Sam Snyder
  */
 public class Beat {
 
@@ -19,10 +21,9 @@ public class Beat {
     private List<ValueSetSegment> overlappingTimbreSegments;
     private int indexInBar;
 
-    private double[] beatScores;
-
     private byte[] decodedAudio;
 
+    private double[] beatScores;
     private List<Link> allLinks;
     private List<Link> currentLinks;
 
@@ -30,7 +31,16 @@ public class Beat {
     private double pitchWeight = 3;
     private double durationWeight = 2000;
 
-    Beat(Track t, int i, double s, double d, int iib){
+    /**
+     * Creates a new beat with positions in the track
+     *
+     * @param t the track it belongs to
+     * @param i the index in the track
+     * @param s the start time in seconds
+     * @param d the duration in seconds
+     * @param iib the index in the bar
+     */
+    protected Beat(Track t, int i, double s, double d, int iib){
         track = t;
         index = i;
         start = s;
@@ -40,18 +50,38 @@ public class Beat {
         overlappingTimbreSegments = new ArrayList<ValueSetSegment>();
     }
 
+    /**
+     * The track the beat belongs to
+     *
+     * @return track
+     */
     public Track getTrack() {
         return track;
     }
 
+    /**
+     * The index in the track
+     *
+     * @return index
+     */
     public int getIndex() {
         return index;
     }
 
+    /**
+     * The start time
+     *
+     * @return start time in seconds
+     */
     public double getStart() {
         return start;
     }
 
+    /**
+     * The duration
+     *
+     * @return duration in seconds
+     */
     public double getDuration() {
         return duration;
     }
@@ -60,10 +90,15 @@ public class Beat {
         return start + duration;
     }
 
-    public byte[] getDecodedAudio() {
+    protected byte[] getDecodedAudio() {
         return decodedAudio;
     }
 
+    /**
+     * The links from the beat under the current threshold
+     *
+     * @return list of links
+     */
     public List<Link> getCurrentLinks() {
         return currentLinks;
     }
@@ -76,11 +111,11 @@ public class Beat {
         overlappingTimbreSegments.add(seg);
     }
 
-    protected void extractNeighboursWithThreshold(double threshold, int maxNeighbours){
+    protected void extractLinksWithThreshold(double maxScore){
         currentLinks = new ArrayList<Link>();
         for(int i=0; i<allLinks.size(); i++){
             Link link = allLinks.get(i);
-            if(link.getScore() < threshold)
+            if(link.getScore() < maxScore)
                 currentLinks.add(link);
         }
     }
@@ -97,7 +132,6 @@ public class Beat {
             beatScores[i] = getScoreFromBeat(track.getBeats().get(i));
         }
     }
-
 
     protected double getScoreFromBeatWithSurround(Beat dest){
         int checkSize = 1;
@@ -145,64 +179,6 @@ public class Beat {
         }
     }
 
-
-//    protected void findAllLinks(){
-//        beatLinks =  new Link[track.getBeats().size()];
-//        sortedBeatLinks = new ArrayList<Link>(beatLinks.length - 1);
-//        for(int i=0; i<track.getBeats().size(); i++){
-//            if(index == i)
-//                continue;
-//
-//            Beat beat = track.getBeats().get(i);
-//            double score = getScoreFromBeat(beat);
-//            Link link = new Link(this, beat, score);
-//            beatLinks[i] = link;
-//            sortedBeatLinks.add(link);
-//        }
-//
-//        Collections.sort(sortedBeatLinks, new Comparator<Link>() {
-//            @Override
-//            public int compare(Link a, Link b) {
-//                if(a.getScore() == b.getScore()) return 0;
-//                else if(a.getScore() < b.getScore()) return -1;
-//                else return 1;
-//            }
-//        });
-//    }
-//
-//    protected Link linkToBeat(Beat beat){
-//        return beatLinks[beat.getIndex()];
-//    }
-
-//    protected void findAllLinks(int maxLinks, double maxScore, int minLinkSize){
-//        List<Link> links = new ArrayList<Link>();
-//        for(int i=0; i<track.getBeats().size(); i++){
-//            if(Math.abs(i - index) < minLinkSize)
-//                continue;
-//
-//            Beat beat = track.getBeats().get(i);
-//            double score = getScoreFromBeat(beat);
-//            if(score < maxScore){
-//                Link link = new Link(this, beat, score);
-//                links.add(link);
-//            }
-//        }
-//
-//        Collections.sort(links, new Comparator<Link>() {
-//            @Override
-//            public int compare(Link a, Link b) {
-//                if(a.getScore() == b.getScore()) return 0;
-//                else if(a.getScore() < b.getScore()) return -1;
-//                else return 1;
-//            }
-//        });
-//
-//        allLinks = new ArrayList<Link>(maxLinks);
-//        for(int i=0; i<links.size() && i<maxLinks; i++){
-//            allLinks.add(links.get(i));
-//        }
-//    }
-
     protected double getScoreFromBeat(Beat b){
         double score = 0;
 
@@ -216,7 +192,7 @@ public class Beat {
         return score;
     }
 
-    double averageValueSetScore(List<ValueSetSegment> a, List<ValueSetSegment> b){
+    private double averageValueSetScore(List<ValueSetSegment> a, List<ValueSetSegment> b){
         double sum = 0;
         for(int i=0; i<a.size(); i++){
             double score = 100;
@@ -228,15 +204,14 @@ public class Beat {
         return sum / a.size();
     }
 
-    void deallocDecodedAudio(){
+    protected void deallocDecodedAudio(){
         decodedAudio = null;
     }
 
-    void asyncDecode(final long startIndex, final long duration){
+    protected void asyncDecode(final long startIndex, final long duration){
         new Thread(new Runnable() {
             @Override
             public void run() {
-
                 try {
                     decodedAudio = new byte[(int) duration];
                     track.getAudioFileInput().seek(startIndex);
@@ -247,7 +222,6 @@ public class Beat {
 
             }
         }).run();
-
     }
 
     @Override
