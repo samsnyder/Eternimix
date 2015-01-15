@@ -24,9 +24,9 @@ public class SingleTrackRemixer implements PlayerDelegate{
      *
      * @param ui ui to feed
      */
-    public SingleTrackRemixer(UI ui){
+    public SingleTrackRemixer(UI ui, AudioPlayerInterface audioPlayer){
         this.ui = ui;
-        player = new Player(this);
+        player = new Player(this, audioPlayer);
     }
 
     /**
@@ -52,7 +52,7 @@ public class SingleTrackRemixer implements PlayerDelegate{
     }
 
     @Override
-    public AudioFormat getAudioFormat() {
+    public PCMAudioFormat getAudioFormat() {
         return currentTrack.getAudioFormat();
     }
 

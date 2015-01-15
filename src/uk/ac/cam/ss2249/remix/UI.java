@@ -8,10 +8,9 @@ package uk.ac.cam.ss2249.remix;
  * @author Sam Snyder
  */
 public abstract class UI {
-    private SingleTrackRemixer e;
 
     protected UI(){
-        e = new SingleTrackRemixer(this);
+
     }
 
     /**

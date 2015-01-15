@@ -14,7 +14,7 @@ public class Track {
 
     private String fileName;
     private RandomAccessFile audioFileInput;
-    private AudioFormat audioFormat;
+    private PCMAudioFormat audioFormat;
     private AnalyseMethod analyseMethod;
     private List<Beat> beats;
 
@@ -25,15 +25,18 @@ public class Track {
     private double computedThreshold;
     private double currentThreshold;
 
+    private AudioDecoderInterface decoderInterface;
+
     /**
      * Creates a track object with a file path
      *
      * @param f file path
      */
-    public Track(String f){
+    public Track(String f, AudioDecoderInterface dI){
         fileName = f;
-        audioFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 44100.0f, 16, 2, 4, 44100.0f, false);
+        audioFormat = new PCMAudioFormat(44100.0f, 16, 2, 4, 44100.0f, false);
         analyseMethod = new VampAnalyseMethod(this);
+        decoderInterface = dI;
     }
 
     /**
@@ -58,7 +61,7 @@ public class Track {
         return audioFileInput;
     }
 
-    protected AudioFormat getAudioFormat() {
+    public PCMAudioFormat getAudioFormat() {
         return audioFormat;
     }
 
@@ -72,7 +75,7 @@ public class Track {
      * @throws IOException in reading the encoded file and writing the decoded file
      * @throws UnsupportedAudioFileException in decoding and analysing the audio
      */
-    public void load(ProgressFeedback progress) throws IOException, UnsupportedAudioFileException {
+    public void load(ProgressFeedback progress) throws IOException {
         progress.changedState(TrackLoadState.COVERTING_TRACK);
         convertTrack(progress);
         progress.changedState(TrackLoadState.ANALYSING_TRACK);
@@ -80,31 +83,46 @@ public class Track {
         progress.finished(true);
     }
 
-    private void convertTrack(ProgressFeedback progress) throws IOException, UnsupportedAudioFileException {
+    private void convertTrack(ProgressFeedback progress) throws IOException {
         analyseMethod.setupAnalyse();
 
-        File file = new File(fileName);
-        long duration = ((Long) AudioSystem.getAudioFileFormat(file).properties().get("duration")).longValue();
-        AudioInputStream in = AudioSystem.getAudioInputStream(file);
-        AudioInputStream din = AudioSystem.getAudioInputStream(audioFormat, in);
+        decoderInterface.openFile(this, fileName);
 
-        File pcmFile = new File("/Users/sam/Downloads/" + Math.abs(new Random().nextLong()) + ".pcm");
-
-        FileOutputStream outputFile = new FileOutputStream(pcmFile);
-        int nRead;
         byte[] data = new byte[analyseMethod.getBufferSize()];
-        double n = 0;
-        while ((nRead = din.read(data, 0, data.length)) != -1) {
-            outputFile.write(data, 0, nRead);
+        while (decoderInterface.fillBuffer(data) != -1) {
             analyseMethod.processData(data);
-            int frames = nRead / audioFormat.getFrameSize();
-            n += 1000000 * ((float) frames) / audioFormat.getFrameRate();
-            progress.gotProgress(n / ((double) duration));
+            progress.gotProgress(decoderInterface.getProgress());
         }
-        outputFile.close();
+        decoderInterface.closeFile();
         beats = analyseMethod.getBeats();
-        audioFileInput = new RandomAccessFile(pcmFile, "r");
+        audioFileInput = decoderInterface.getPCMFile();
     }
+
+//    private void convertTrack(ProgressFeedback progress) throws IOException {
+//        analyseMethod.setupAnalyse();
+//
+//        File file = new File(fileName);
+//        long duration = ((Long) AudioSystem.getAudioFileFormat(file).properties().get("duration")).longValue();
+//        AudioInputStream in = AudioSystem.getAudioInputStream(file);
+//        AudioInputStream din = AudioSystem.getAudioInputStream(audioFormat, in);
+//
+//        File pcmFile = new File("/Users/sam/Downloads/" + Math.abs(new Random().nextLong()) + ".pcm");
+//
+//        FileOutputStream outputFile = new FileOutputStream(pcmFile);
+//        int nRead;
+//        byte[] data = new byte[analyseMethod.getBufferSize()];
+//        double n = 0;
+//        while ((nRead = din.read(data, 0, data.length)) != -1) {
+//            outputFile.write(data, 0, nRead);
+//            analyseMethod.processData(data);
+//            int frames = nRead / audioFormat.getFrameSize();
+//            n += 1000000 * ((float) frames) / audioFormat.getFrameRate();
+//            progress.gotProgress(n / ((double) duration));
+//        }
+//        outputFile.close();
+//        beats = analyseMethod.getBeats();
+//        audioFileInput = new RandomAccessFile(pcmFile, "r");
+//    }
 
     private void analyseTrack(){
 

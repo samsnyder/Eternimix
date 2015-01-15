@@ -11,6 +11,6 @@ import javax.sound.sampled.AudioFormat;
  */
 interface PlayerDelegate {
     void willPlayBeat(Beat beat);
-    AudioFormat getAudioFormat();
+    PCMAudioFormat getAudioFormat();
     Beat getNextBeat(Beat lastBeat);
 }

@@ -15,6 +15,7 @@ import java.util.Queue;
 class Player {
 
     private PlayerDelegate delegate;
+    private AudioPlayerInterface audioPlayer;
 
     private Queue<Beat> audioQueue;
 
@@ -28,9 +29,11 @@ class Player {
      * Creates a player with a delegate
      *
      * @param d delegate
+     * @param ap audio interface
      */
-    protected Player(PlayerDelegate d){
+    protected Player(PlayerDelegate d, AudioPlayerInterface ap){
         delegate = d;
+        audioPlayer = ap;
         audioQueue = new LinkedList<Beat>();
     }
 
@@ -60,10 +63,7 @@ class Player {
             @Override
             public void run() {
                 try {
-                    DataLine.Info info = new DataLine.Info(SourceDataLine.class, delegate.getAudioFormat(), 1);
-                    SourceDataLine soundLine = (SourceDataLine) AudioSystem.getLine(info);
-                    soundLine.open(delegate.getAudioFormat(), bufferSize);
-                    soundLine.start();
+                    audioPlayer.openAudio(bufferSize);
                     while (!audioQueue.isEmpty()) {
                         Beat beat = audioQueue.remove();
 
@@ -74,7 +74,7 @@ class Player {
                         }
 
                         long duration = timeToIndex(beat.getDuration());
-                        soundLine.write(beat.getDecodedAudio(), 0, (int) duration);
+                        audioPlayer.writeBuffer(beat.getDecodedAudio(), (int) duration);
                         beat.deallocDecodedAudio();
 
                         if(shouldAddToQueue()){
