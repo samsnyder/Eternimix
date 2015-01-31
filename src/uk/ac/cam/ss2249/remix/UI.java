@@ -7,30 +7,26 @@ package uk.ac.cam.ss2249.remix;
  *
  * @author Sam Snyder
  */
-public abstract class UI {
-
-    protected UI(){
-
-    }
+public interface UI {
 
     /**
      * The player is about to play this beat
      *
      * @param beat beat to play
      */
-    abstract protected void willPlayBeat(Beat beat);
+    void willPlayBeat(Beat beat);
 
     /**
      * The player will travel down this link on the next beat
      *
      * @param link link to travel down
      */
-    abstract protected void willTravelDownLink(Link link);
+    void willTravelDownLink(Link link);
 
     /**
      * Loaded this track
      *
      * @param track loaded track
      */
-    abstract protected void loadedTrack(Track track);
+    void loadedTrack(Track track);
 }

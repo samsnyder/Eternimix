@@ -8,7 +8,7 @@ import java.util.List;
  *
  * @author Sam Snyder
  */
-abstract class AnalyseMethod {
+public abstract class AnalyseMethod {
 
     private Track track;
 
@@ -20,9 +20,8 @@ abstract class AnalyseMethod {
         return track;
     }
 
-    abstract void setupAnalyse();
-    abstract void processData(byte[] buffer);
-    abstract List<Beat> getBeats();
-    abstract int getBufferSize();
+    public abstract void setupAnalyse();
+    public abstract void processData(byte[] buffer);
+    public abstract List<Beat> getBeats();
 
 }

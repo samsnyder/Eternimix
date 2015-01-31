@@ -6,7 +6,8 @@ package uk.ac.cam.ss2249.remix;
  * @author Sam Snyder
  */
 public interface ProgressFeedback {
-    void changedState(TrackLoadState state);
-    void gotProgress(double progress);
-    void finished(boolean success);
+    void changedState(Track track, TrackLoadState state);
+    void gotProgress(Track track, double progress);
+    void finished(Track track, boolean success);
+    void gotError(Track track, Exception e);
 }

@@ -1,9 +1,5 @@
 package uk.ac.cam.ss2249.remix;
 
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.SourceDataLine;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -47,6 +43,12 @@ class Player {
         }
     }
 
+    protected void startFromBeat(Beat beat){
+        audioQueue.clear();
+        addToQueue(beat);
+        refreshQueue();
+    }
+
     protected void addToQueue(Beat beat){
         if(beat == null)
             return;
@@ -62,27 +64,24 @@ class Player {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    audioPlayer.openAudio(bufferSize);
-                    while (!audioQueue.isEmpty()) {
-                        Beat beat = audioQueue.remove();
+                audioPlayer.openAudio(bufferSize);
+                while (!audioQueue.isEmpty()) {
+                    Beat beat = audioQueue.remove();
 
-                        delegate.willPlayBeat(beat);
-                        if(beat.getDecodedAudio() == null){
-                            System.out.println("NO AUDIO");
-                            continue;
-                        }
+                    delegate.willPlayBeat(beat);
+                    if(beat.getDecodedAudio() == null){
+                        System.out.println("NO AUDIO");
+                        continue;
+                    }
 
-                        long duration = timeToIndex(beat.getDuration());
-                        audioPlayer.writeBuffer(beat.getDecodedAudio(), (int) duration);
+                    long duration = timeToIndex(beat.getDuration());
+                    audioPlayer.writeBuffer(beat.getDecodedAudio(), (int) duration);
+                    if(!audioQueue.contains(beat))
                         beat.deallocDecodedAudio();
 
-                        if(shouldAddToQueue()){
-                            refreshQueue();
-                        }
+                    if(shouldAddToQueue()){
+                        refreshQueue();
                     }
-                } catch (LineUnavailableException e) {
-                    e.printStackTrace();
                 }
             }
         }).start();

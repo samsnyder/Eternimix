@@ -6,7 +6,7 @@ package uk.ac.cam.ss2249.remix;
  *
  * @author Sam Snyder
  */
-class ValueSetSegment {
+public class ValueSetSegment {
     private float[] values;
 
     /**
@@ -14,7 +14,7 @@ class ValueSetSegment {
      *
      * @param v value array
      */
-    protected ValueSetSegment(float[] v){
+    public ValueSetSegment(float[] v){
         values = v;
     }
 

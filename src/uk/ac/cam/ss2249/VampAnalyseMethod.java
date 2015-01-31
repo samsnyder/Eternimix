@@ -1,6 +1,10 @@
-package uk.ac.cam.ss2249.remix;
+package uk.ac.cam.ss2249;
 
 import org.vamp_plugins.*;
+import uk.ac.cam.ss2249.remix.AnalyseMethod;
+import uk.ac.cam.ss2249.remix.Beat;
+import uk.ac.cam.ss2249.remix.Track;
+import uk.ac.cam.ss2249.remix.ValueSetSegment;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -14,7 +18,7 @@ import java.util.Map;
  *
  * @author Sam Snyder
  */
-public class VampAnalyseMethod extends AnalyseMethod {
+public class VampAnalyseMethod extends AnalyseMethod{
 
     private PluginLoader loader;
 
@@ -39,7 +43,7 @@ public class VampAnalyseMethod extends AnalyseMethod {
     }
 
     @Override
-    void setupAnalyse() {
+    public void setupAnalyse() {
         loader = PluginLoader.getInstance();
 
         rate = getTrack().getAudioFormat().getFrameRate();
@@ -49,7 +53,7 @@ public class VampAnalyseMethod extends AnalyseMethod {
         outputNumbers = new int[pluginKeys.length];
         for(int i=0; i<pluginKeys.length; i++){
             try {
-                Object[] d = generatePlugin(loader, pluginKeys[i], outputKeys[i], rate, channels, blockSize);
+                Object[] d = generatePlugin(loader, pluginKeys[i], outputKeys[i], rate, 2, blockSize);
                 plugins[i] = (Plugin) d[0];
                 outputNumbers[i] = ((Integer) d[1]).intValue();
             } catch (PluginLoader.LoadFailedException e) {
@@ -63,15 +67,26 @@ public class VampAnalyseMethod extends AnalyseMethod {
     }
 
     @Override
-    void processData(byte[] raw) {
+    public void processData(byte[] raw) {
         float[][] buffer = convertRawToFloatArray(raw);
+        //buffer = new float[][]{buffer[0]};
         RealTime timestamp = RealTime.frame2RealTime(block * blockSize, (int)(rate + 0.5));
+        long t = System.nanoTime();
         for(int i=0; i<plugins.length; i++){
             Map<Integer, List<Feature>> features = plugins[i].process(buffer, timestamp);
             if(features.containsKey(outputNumbers[i])){
                 ((List<Feature>) totalFeatures[i]).addAll(features.get(outputNumbers[i]));
             }
+            long newT = System.nanoTime();
+            //System.out.println(i + ": " + (newT - t));
+            t = newT;
         }
+
+        //double[] data = new double[buffer[0].length];
+        //for(int i=0; i<data.length; i++)
+        //    data[i] = buffer[0][i];
+
+
         block++;
         timestamp.dispose();
     }
@@ -93,8 +108,8 @@ public class VampAnalyseMethod extends AnalyseMethod {
     }
 
     @Override
-    List<Beat> getBeats() {
-        for(int i=0; i<plugins.length; i++){
+    public List<Beat> getBeats() {
+        for(int i=0; i<plugins.length && i<1; i++){
             Map<Integer, List<Feature>> features = plugins[i].getRemainingFeatures();
             if(features.containsKey(outputNumbers[i])){
                 ((List<Feature>) totalFeatures[i]).addAll(features.get(outputNumbers[i]));
@@ -104,6 +119,7 @@ public class VampAnalyseMethod extends AnalyseMethod {
         List<Beat> beats = new ArrayList<Beat>();
         double lastTimestamp = -1;
         int lastIndexInBar = -1;
+
         for(int i=0; i<((List<Feature>) totalFeatures[0]).size(); i++){
             Feature feature = ((List<Feature>) totalFeatures[0]).get(i);
             if(!feature.hasTimestamp)
@@ -112,6 +128,22 @@ public class VampAnalyseMethod extends AnalyseMethod {
             if(lastTimestamp > 0){
                 double duration = timestamp - lastTimestamp;
                 Beat beat = new Beat(getTrack(), i-1, lastTimestamp, duration, lastIndexInBar);
+
+//                float iMOPer = (i-1) / ((float) ((List<Feature>) totalFeatures[0]).size());
+//                float iPer = i / ((float) ((List<Feature>) totalFeatures[0]).size());
+//                int iMOIndex = (int) (((List<double[]>) totalFeatures[2]).size() * iMOPer);
+//                int iIndex = (int) (((List<double[]>) totalFeatures[2]).size() * iPer);
+//
+//                for(int j=iMOIndex; j<iIndex; j++){
+//                    double[] params = ((List<double[]>) totalFeatures[2]).get(j);
+//                    float[] paramsF = new float[params.length];
+//                    for(int o=0; o<params.length; o++)
+//                        paramsF[o] = (float) params[o];
+//                    ValueSetSegment segment = new ValueSetSegment(paramsF);
+//                    beat.addOverlappingTimbreSegment(segment);
+//                }
+
+
                 beats.add(beat);
             }
             lastTimestamp = timestamp;
@@ -158,16 +190,16 @@ public class VampAnalyseMethod extends AnalyseMethod {
         return beats;
     }
 
-    @Override
-    int getBufferSize() {
-        return blockSize * getTrack().getAudioFormat().getChannels() * 2;
-    }
+//    @Override
+//    public int getBufferSize() {
+//        return blockSize * getTrack().getAudioFormat().getChannels() * 2;
+//    }
 
     private static double timestampToDouble(RealTime timestamp){
         return timestamp.sec() + (((double) timestamp.msec())/1000);
     }
 
-    private static Object[] generatePlugin(PluginLoader loader, String key, String outputKey, float rate, int channels, int blockSize) throws PluginLoader.LoadFailedException {
+    public Object[] generatePlugin(PluginLoader loader, String key, String outputKey, float rate, int channels, int blockSize) throws PluginLoader.LoadFailedException {
         Plugin p = loader.loadPlugin(key, rate, PluginLoader.AdapterFlags.ADAPT_ALL);
 
         OutputDescriptor[] outputs = p.getOutputDescriptors();

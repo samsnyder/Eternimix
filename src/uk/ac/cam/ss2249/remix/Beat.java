@@ -40,7 +40,7 @@ public class Beat {
      * @param d the duration in seconds
      * @param iib the index in the bar
      */
-    protected Beat(Track t, int i, double s, double d, int iib){
+    public Beat(Track t, int i, double s, double d, int iib){
         track = t;
         index = i;
         start = s;
@@ -86,7 +86,7 @@ public class Beat {
         return duration;
     }
 
-    protected double getEnd(){
+    public double getEnd(){
         return start + duration;
     }
 
@@ -103,12 +103,16 @@ public class Beat {
         return currentLinks;
     }
 
-    protected void addOverlappingPitchSegment(ValueSetSegment seg){
+    public void addOverlappingPitchSegment(ValueSetSegment seg){
         overlappingPitchSegments.add(seg);
     }
 
-    protected void addOverlappingTimbreSegment(ValueSetSegment seg){
+    public void addOverlappingTimbreSegment(ValueSetSegment seg){
         overlappingTimbreSegments.add(seg);
+    }
+
+    public void setOverlappingTimbreSegments(List<ValueSetSegment> timbre){
+        overlappingTimbreSegments = timbre;
     }
 
     protected void extractLinksWithThreshold(double maxScore){
@@ -182,7 +186,7 @@ public class Beat {
     protected double getScoreFromBeat(Beat b){
         double score = 0;
 
-        score += pitchWeight * averageValueSetScore(overlappingPitchSegments, b.overlappingPitchSegments);
+        //score += pitchWeight * averageValueSetScore(overlappingPitchSegments, b.overlappingPitchSegments);
         score += timbreWeight * averageValueSetScore(overlappingTimbreSegments, b.overlappingTimbreSegments);
 
         if(indexInBar != b.indexInBar)
@@ -193,6 +197,27 @@ public class Beat {
     }
 
     private double averageValueSetScore(List<ValueSetSegment> a, List<ValueSetSegment> b){
+        double sum = 0;
+        int n = 0;
+        for(ValueSetSegment aS : a){
+            for(ValueSetSegment bS : b){
+                double score = aS.getDistanceFrom(bS);
+                sum += score;
+                n++;
+            }
+        }
+//        for(int i=0; i<a.size(); i++){
+//            double score = 100;
+//            if(i < b.size()){
+//                score = a.get(i).getDistanceFrom(b.get(i));
+//            }
+//            sum += score;
+//            n++;
+//        }
+        return sum / n;
+    }
+
+    private double averageValueSetScore2(List<ValueSetSegment> a, List<ValueSetSegment> b){
         double sum = 0;
         for(int i=0; i<a.size(); i++){
             double score = 100;

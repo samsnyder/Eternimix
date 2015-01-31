@@ -1,6 +1,7 @@
 package uk.ac.cam.ss2249.remix;
 
-import javax.sound.sampled.AudioFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -12,7 +13,7 @@ public class SingleTrackRemixer implements PlayerDelegate{
 
     private Track currentTrack;
     private Player player;
-    private UI ui;
+    private List<UI> uis;
 
     private double curRandomBranchChance = 0;
     private double minRandomBranchChance = 0.18;
@@ -22,11 +23,29 @@ public class SingleTrackRemixer implements PlayerDelegate{
     /**
      * Creates a remixer that feeds a UI
      *
-     * @param ui ui to feed
+     * @param audioPlayer audio player
      */
-    public SingleTrackRemixer(UI ui, AudioPlayerInterface audioPlayer){
-        this.ui = ui;
+    public SingleTrackRemixer(AudioPlayerInterface audioPlayer){
         player = new Player(this, audioPlayer);
+        uis = new ArrayList<UI>();
+    }
+
+    /**
+     * Adds a UI listener
+     *
+     * @param ui UI
+     */
+    public void addUI(UI ui){
+        uis.add(ui);
+    }
+
+    /**
+     * Removes a UI listener
+     *
+     * @param ui UI
+     */
+    public void removeUI(UI ui){
+        uis.remove(ui);
     }
 
     /**
@@ -36,7 +55,17 @@ public class SingleTrackRemixer implements PlayerDelegate{
      */
     public void loadTrack(Track t){
         currentTrack = t;
-        ui.loadedTrack(t);
+        for(UI ui : uis)
+            ui.loadedTrack(t);
+    }
+
+    /**
+     * Gets the currently loaded track
+     *
+     * @return track
+     */
+    public Track getCurrentTrack(){
+        return currentTrack;
     }
 
     /**
@@ -46,9 +75,19 @@ public class SingleTrackRemixer implements PlayerDelegate{
         player.startPlaying();
     }
 
+    /**
+     * Start from beat
+     *
+     * @param beat
+     */
+    public void startFromBeat(Beat beat){
+        player.startFromBeat(beat);
+    }
+
     @Override
     public void willPlayBeat(Beat beat) {
-        ui.willPlayBeat(beat);
+        for(UI ui : uis)
+            ui.willPlayBeat(beat);
     }
 
     @Override

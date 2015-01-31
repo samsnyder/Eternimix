@@ -1,9 +1,8 @@
 package uk.ac.cam.ss2249.remix;
 
-import javax.sound.sampled.*;
-import java.io.*;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.List;
-import java.util.Random;
 
 /**
  * Represents a track, made up of multiple beats.
@@ -35,8 +34,12 @@ public class Track {
     public Track(String f, AudioDecoderInterface dI){
         fileName = f;
         audioFormat = new PCMAudioFormat(44100.0f, 16, 2, 4, 44100.0f, false);
-        analyseMethod = new VampAnalyseMethod(this);
+        //analyseMethod = new VampAnalyseMethod(this);
         decoderInterface = dI;
+    }
+
+    public void setAnalyseMethod(AnalyseMethod am){
+        analyseMethod = am;
     }
 
     /**
@@ -66,6 +69,20 @@ public class Track {
     }
 
     /**
+     * Loads the track asynchronously
+     *
+     * @param progress progress interface
+     */
+    public void loadAsync(final ProgressFeedback progress){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                load(progress);
+            }
+        }).start();
+    }
+
+    /**
      * Loads the track with a progress reporter
      *
      * It first converts and draws the beats, pitches and timbre from the encoded file
@@ -73,14 +90,17 @@ public class Track {
      *
      * @param progress reporter
      * @throws IOException in reading the encoded file and writing the decoded file
-     * @throws UnsupportedAudioFileException in decoding and analysing the audio
      */
-    public void load(ProgressFeedback progress) throws IOException {
-        progress.changedState(TrackLoadState.COVERTING_TRACK);
-        convertTrack(progress);
-        progress.changedState(TrackLoadState.ANALYSING_TRACK);
-        analyseTrack();
-        progress.finished(true);
+    public void load(ProgressFeedback progress) {
+        try {
+            progress.changedState(this, TrackLoadState.COVERTING_TRACK);
+            convertTrack(progress);
+            progress.changedState(this, TrackLoadState.ANALYSING_TRACK);
+            analyseTrack();
+            progress.finished(this, true);
+        }catch (Exception e){
+            progress.gotError(this, e);
+        }
     }
 
     private void convertTrack(ProgressFeedback progress) throws IOException {
@@ -88,10 +108,13 @@ public class Track {
 
         decoderInterface.openFile(this, fileName);
 
-        byte[] data = new byte[analyseMethod.getBufferSize()];
-        while (decoderInterface.fillBuffer(data) != -1) {
+        //byte[] data = new byte[analyseMethod.getBufferSize()];
+        while (true) {
+            byte[] data = decoderInterface.getBuffer();
+            if(data == null)
+                break;
             analyseMethod.processData(data);
-            progress.gotProgress(decoderInterface.getProgress());
+            progress.gotProgress(this, decoderInterface.getProgress());
         }
         decoderInterface.closeFile();
         beats = analyseMethod.getBeats();
